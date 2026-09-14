@@ -1,0 +1,39 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.matyldahouse.kiosk"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.matyldahouse.kiosk"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("KIOSK_KEYSTORE_PATH")
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("KIOSK_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KIOSK_KEY_ALIAS")
+                keyPassword System.getenv("KIOSK_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile(
+                    "proguard-android-optimize.txt"
+            ), "proguard-rules.pro"
+        }
+    }
+}

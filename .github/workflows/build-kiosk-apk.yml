@@ -1,0 +1,61 @@
+name: Build Matylda House APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "android-kiosk/**"
+      - ".github/workflows/build-kiosk-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: android-kiosk
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.2"
+
+      - name: Restore signing key
+        env:
+          KIOSK_KEYSTORE_BASE64: ${{ secrets.KIOSK_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KIOSK_KEYSTORE_BASE64" | base64 --decode > kiosk-release.jks
+          chmod 600 kiosk-release.jks
+
+      - name: Build signed APK
+        env:
+          KIOSK_KEYSTORE_PATH: ${{ github.workspace }}/android-kiosk/kiosk-release.jks
+          KIOSK_KEYSTORE_PASSWORD: ${{ secrets.KIOSK_KEYSTORE_PASSWORD }}
+          KIOSK_KEY_ALIAS: ${{ secrets.KIOSK_KEY_ALIAS }}
+          KIOSK_KEY_PASSWORD: ${{ secrets.KIOSK_KEY_PASSWORD }}
+        run: gradle assembleRelease --no-daemon
+
+      - name: Rename APK
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/Matylda-House.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Matylda-House-APK
+          path: android-kiosk/app/build/outputs/apk/release/Matylda-House.apk
+          retention-days: 30
